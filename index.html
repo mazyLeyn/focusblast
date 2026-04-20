@@ -2,22 +2,23 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Focus Blast | Original Block Puzzle</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Focus Blast | %100 Arena Clone</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        body { background-color: #0a0c14; color: #fff; font-family: 'Plus Jakarta Sans', sans-serif; touch-action: none; }
-        .glass { background: rgba(30, 41, 59, 0.5); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
-        .cell { width: 40px; height: 40px; border-radius: 4px; transition: all 0.2s; }
-        .cell-empty { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.05); }
-        .cell-filled { background: linear-gradient(135deg, #6366f1, #a855f7); box-shadow: 0 0 10px rgba(99, 102, 241, 0.3); }
-        .shape-preview { display: grid; gap: 2px; cursor: grab; transition: transform 0.2s; }
-        .shape-preview:active { cursor: grabbing; transform: scale(1.1); }
-        .ghost-preview { opacity: 0.3; background: #6366f1 !important; }
+        :root { --bg: #05070a; --grid-bg: #10141e; --cell-empty: #1a1f2e; }
+        body { background-color: var(--bg); color: white; font-family: sans-serif; touch-action: none; overflow: hidden; }
+        .grid-container { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; background: var(--grid-bg); padding: 8px; border-radius: 12px; }
+        .cell { aspect-ratio: 1/1; border-radius: 4px; transition: background 0.2s; }
+        .cell-empty { background-color: var(--cell-empty); }
+        .cell-filled { background: linear-gradient(135deg, #6366f1, #a855f7); box-shadow: inset 0 0 8px rgba(255,255,255,0.2); }
+        .shape-slot { width: 100px; height: 100px; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.03); border-radius: 12px; cursor: grab; }
+        .shape-slot:active { cursor: grabbing; }
+        .shape-grid { display: grid; gap: 2px; }
+        .shape-block { width: 20px; height: 20px; border-radius: 2px; }
     </style>
 </head>
 <body>
@@ -27,127 +28,119 @@
         const { useState, useEffect } = React;
 
         const SHAPES = [
-            { layout: [[1, 1], [1, 1]], color: 'bg-indigo-500' }, // Kare
-            { layout: [[1, 1, 1]], color: 'bg-purple-500' },    // Yatay 3'lü
-            { layout: [[1], [1], [1]], color: 'bg-blue-500' }, // Dikey 3'lü
-            { layout: [[1, 0], [1, 0], [1, 1]], color: 'bg-pink-500' }, // L Şekli
-            { layout: [[1]], color: 'bg-yellow-500' }           // Tekli
+            { id: 1, cells: [[1, 1], [1, 1]], color: 'bg-indigo-500' },
+            { id: 2, cells: [[1, 1, 1]], color: 'bg-indigo-500' },
+            { id: 3, cells: [[1], [1], [1]], color: 'bg-indigo-500' },
+            { id: 4, cells: [[1, 1], [1, 0]], color: 'bg-indigo-500' },
+            { id: 5, cells: [[1]], color: 'bg-indigo-500' }
         ];
 
         function App() {
-            const gridSize = 8;
-            const [grid, setGrid] = useState(Array(gridSize * gridSize).fill(0));
-            const [previews, setPreviews] = useState([]);
-            const [focusProgress, setFocusProgress] = useState(0);
-            const [activeTab, setActiveTab] = useState('game');
+            const [grid, setGrid] = useState(Array(64).fill(0));
+            const [dock, setDock] = useState([]);
+            const [score, setScore] = useState(0);
+            const [draggedShape, setDraggedShape] = useState(null);
 
-            // Başlangıçta 3 şekil oluştur
-            useEffect(() => {
-                generateNewShapes();
-            }, []);
+            useEffect(() => { spawnShapes(); }, []);
 
-            const generateNewShapes = () => {
-                const newShapes = [
-                    SHAPES[Math.floor(Math.random() * SHAPES.length)],
-                    SHAPES[Math.floor(Math.random() * SHAPES.length)],
-                    SHAPES[Math.floor(Math.random() * SHAPES.length)]
-                ];
-                setPreviews(newShapes);
+            const spawnShapes = () => {
+                const newShapes = Array(3).fill(null).map(() => SHAPES[Math.floor(Math.random() * SHAPES.length)]);
+                setDock(newShapes);
             };
 
-            const placeShape = (shapeIndex, gridIndex) => {
-                const shape = previews[shapeIndex];
+            const handleDrop = (gridIdx, shape, dockIdx) => {
                 const newGrid = [...grid];
-                const row = Math.floor(gridIndex / gridSize);
-                const col = gridIndex % gridSize;
+                const row = Math.floor(gridIdx / 8);
+                const col = gridIdx % 8;
 
-                // Yerleştirme kontrolü
-                for (let r = 0; r < shape.layout.length; r++) {
-                    for (let c = 0; c < shape.layout[r].length; c++) {
-                        if (shape.layout[r][c]) {
+                // Yerleşebilir mi kontrolü
+                for (let r = 0; r < shape.cells.length; r++) {
+                    for (let c = 0; c < shape.cells[r].length; c++) {
+                        if (shape.cells[r][c]) {
                             const targetR = row + r;
                             const targetC = col + c;
-                            const targetIdx = targetR * gridSize + targetC;
-
-                            if (targetR >= gridSize || targetC >= gridSize || grid[targetIdx]) return;
-                            newGrid[targetIdx] = 1;
+                            if (targetR >= 8 || targetC >= 8 || grid[targetR * 8 + targetC]) return false;
+                            newGrid[targetR * 8 + targetC] = 1;
                         }
                     }
                 }
 
                 // Satır/Sütun Patlatma
-                let linesCleared = 0;
                 let finalGrid = [...newGrid];
+                let toClear = new Set();
 
-                // Satırlar
-                for (let r = 0; r < gridSize; r++) {
-                    if (newGrid.slice(r * gridSize, (r + 1) * gridSize).every(cell => cell === 1)) {
-                        for (let i = 0; i < gridSize; i++) finalGrid[r * gridSize + i] = 0;
-                        linesCleared++;
-                    }
-                }
-                // Sütunlar
-                for (let c = 0; c < gridSize; c++) {
-                    let full = true;
-                    for (let r = 0; r < gridSize; r++) if (newGrid[r * gridSize + c] === 0) full = false;
-                    if (full) {
-                        for (let r = 0; r < gridSize; r++) finalGrid[r * gridSize + c] = 0;
-                        linesCleared++;
-                    }
+                for (let i = 0; i < 8; i++) {
+                    // Satır kontrol
+                    if (newGrid.slice(i * 8, i * 8 + 8).every(x => x === 1)) 
+                        for(let j=0; j<8; j++) toClear.add(i * 8 + j);
+                    // Sütun kontrol
+                    let colCells = [];
+                    for(let j=0; j<8; j++) colCells.push(newGrid[j * 8 + i]);
+                    if (colCells.every(x => x === 1))
+                        for(let j=0; j<8; j++) toClear.add(j * 8 + i);
                 }
 
+                toClear.forEach(idx => finalGrid[idx] = 0);
                 setGrid(finalGrid);
-                setFocusProgress(prev => Math.min(prev + (linesCleared * 15) + 2, 100));
-                
-                const nextPreviews = [...previews];
-                nextPreviews.splice(shapeIndex, 1);
-                if (nextPreviews.length === 0) generateNewShapes();
-                else setPreviews(nextPreviews);
+                setScore(s => s + (toClear.size * 10) + 5);
+
+                const newDock = [...dock];
+                newDock[dockIdx] = null;
+                if (newDock.every(x => x === null)) spawnShapes();
+                else setDock(newDock);
+                return true;
             };
 
             return (
-                <div className="min-h-screen flex flex-col items-center p-4 select-none">
-                    {/* Header */}
-                    <div className="w-full max-w-md flex justify-between items-center mb-8">
-                        <h1 className="text-2xl font-black italic tracking-tighter bg-gradient-to-r from-indigo-400 to-purple-500 bg-clip-text text-transparent">FOCUS BLAST</h1>
-                        <div className="px-4 py-1 glass rounded-full text-xs font-bold text-indigo-400">%{focusProgress} ODAK</div>
+                <div className="flex flex-col items-center justify-between min-h-screen py-10 px-4">
+                    {/* Skor / Odak Barı */}
+                    <div className="w-full max-w-sm">
+                        <div className="flex justify-between mb-2">
+                            <span className="font-bold text-indigo-400">FOCUS BLAST</span>
+                            <span className="text-white font-mono">{score}</span>
+                        </div>
+                        <div className="w-full h-3 bg-slate-900 rounded-full border border-slate-800">
+                            <div className="h-full bg-indigo-500 transition-all" style={{width: `${Math.min(score/5, 100)}%`}} />
+                        </div>
                     </div>
 
-                    {/* Progress Bar */}
-                    <div className="w-full max-w-md h-2 bg-slate-900 rounded-full mb-8 overflow-hidden border border-slate-800">
-                        <div className="h-full bg-indigo-500 transition-all duration-500" style={{ width: `${focusProgress}%` }} />
-                    </div>
-
-                    {/* Main Board */}
-                    <div className="glass p-2 rounded-xl grid grid-cols-8 gap-1 shadow-2xl">
+                    {/* Ana Oyun Tahtası */}
+                    <div className="grid-container w-full max-w-[360px] shadow-2xl">
                         {grid.map((cell, i) => (
                             <div 
                                 key={i} 
-                                onClick={() => previews.length > 0 && placeShape(0, i)} // Simülasyon için ilk şekli yerleştirir
-                                className={`cell ${cell ? 'cell-filled' : 'cell-empty'} hover:bg-white/5`}
+                                onDragOver={(e) => e.preventDefault()}
+                                onDrop={() => draggedShape && handleDrop(i, draggedShape.shape, draggedShape.idx)}
+                                onClick={() => draggedShape && handleDrop(i, draggedShape.shape, draggedShape.idx)} // Mobil kolaylığı
+                                className={`cell ${cell ? 'cell-filled' : 'cell-empty'}`}
                             />
                         ))}
                     </div>
 
-                    {/* Shape Previews */}
-                    <div className="mt-12 flex gap-8 items-center justify-center h-32 w-full max-w-md glass rounded-3xl">
-                        {previews.map((shape, idx) => (
+                    {/* Aşağıdaki Şekiller (Dock) */}
+                    <div className="flex gap-4">
+                        {dock.map((shape, i) => (
                             <div 
-                                key={idx} 
-                                className="shape-preview" 
-                                style={{ gridTemplateColumns: `repeat(${shape.layout[0].length}, 1fr)` }}
-                                onClick={() => {/* Sürükle bırak mantığı için temel */}}
+                                key={i} 
+                                draggable={!!shape}
+                                onDragStart={() => setDraggedShape({shape, idx: i})}
+                                onClick={() => setDraggedShape({shape, idx: i})}
+                                className={`shape-slot ${draggedShape?.idx === i ? 'border-2 border-indigo-500' : ''}`}
                             >
-                                {shape.layout.map((row, rIdx) => 
-                                    row.map((cell, cIdx) => (
-                                        <div key={`${rIdx}-${cIdx}`} className={`w-6 h-6 rounded-sm ${cell ? shape.color : 'opacity-0'}`} />
-                                    ))
+                                {shape && (
+                                    <div className="shape-grid" style={{gridTemplateColumns: `repeat(${shape.cells[0].length}, 1fr)`}}>
+                                        {shape.cells.map((row, r) => row.map((c, cl) => (
+                                            <div key={`${r}-${cl}`} className={`shape-block ${c ? shape.color : 'opacity-0'}`} />
+                                        )))}
+                                    </div>
                                 )}
                             </div>
                         ))}
                     </div>
 
-                    <p className="mt-6 text-slate-500 text-[10px] uppercase tracking-widest font-bold">Bir şekle tıkla ve yerleştirmek istediğin hücreye tıkla</p>
+                    <footer className="text-[10px] text-slate-600 tracking-widest">
+                        DESIGNED BY ONUR KARATAŞ
+                    </footer>
                 </div>
             );
         }
