@@ -3,201 +3,151 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Focus Blast | Find Your Flow</title>
+    <title>Focus Blast | Original Block Puzzle</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-
     <style>
-        body {
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            background-color: #05060b;
-            color: #e2e8f0;
-            margin: 0;
-            overflow-x: hidden;
-        }
-        .glass {
-            background: rgba(15, 18, 30, 0.6);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-        }
-        .neon-glow {
-            box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
-        }
-        @keyframes float {
-            0% { transform: translateY(0px); }
-            50% { transform: translateY(-10px); }
-            100% { transform: translateY(0px); }
-        }
-        .animate-float { animation: float 4s ease-in-out infinite; }
+        body { background-color: #0a0c14; color: #fff; font-family: 'Plus Jakarta Sans', sans-serif; touch-action: none; }
+        .glass { background: rgba(30, 41, 59, 0.5); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .cell { width: 40px; height: 40px; border-radius: 4px; transition: all 0.2s; }
+        .cell-empty { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.05); }
+        .cell-filled { background: linear-gradient(135deg, #6366f1, #a855f7); box-shadow: 0 0 10px rgba(99, 102, 241, 0.3); }
+        .shape-preview { display: grid; gap: 2px; cursor: grab; transition: transform 0.2s; }
+        .shape-preview:active { cursor: grabbing; transform: scale(1.1); }
+        .ghost-preview { opacity: 0.3; background: #6366f1 !important; }
     </style>
 </head>
 <body>
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useMemo } = React;
+        const { useState, useEffect } = React;
 
-        const Icon = ({ name, className }) => {
-            useEffect(() => { lucide.createIcons(); }, [name]);
-            return <i data-lucide={name} className={className}></i>;
-        };
+        const SHAPES = [
+            { layout: [[1, 1], [1, 1]], color: 'bg-indigo-500' }, // Kare
+            { layout: [[1, 1, 1]], color: 'bg-purple-500' },    // Yatay 3'lü
+            { layout: [[1], [1], [1]], color: 'bg-blue-500' }, // Dikey 3'lü
+            { layout: [[1, 0], [1, 0], [1, 1]], color: 'bg-pink-500' }, // L Şekli
+            { layout: [[1]], color: 'bg-yellow-500' }           // Tekli
+        ];
 
-        // --- OYUN BİLEŞENİ ---
-        const Game = ({ setFocusProgress }) => {
-            const [blocks, setBlocks] = useState(Array(16).fill(true));
-            
-            const handleBlockClick = (index) => {
-                if (!blocks[index]) return;
-                const newBlocks = [...blocks];
-                newBlocks[index] = false;
-                setBlocks(newBlocks);
-                setFocusProgress(prev => Math.min(prev + 4, 100));
-                
-                setTimeout(() => {
-                    setBlocks(current => {
-                        const updated = [...current];
-                        updated[index] = true;
-                        return updated;
-                    });
-                }, 1500);
-            };
-
-            return (
-                <div className="grid grid-cols-4 gap-3 p-4 glass rounded-3xl animate-float">
-                    {blocks.map((active, i) => (
-                        <button
-                            key={i}
-                            onClick={() => handleBlockClick(i)}
-                            className={`w-16 h-16 sm:w-20 sm:h-20 rounded-2xl transition-all duration-300 flex items-center justify-center border ${
-                                active 
-                                ? 'bg-indigo-500/10 border-indigo-500/40 shadow-lg shadow-indigo-500/10 hover:scale-105 active:scale-95' 
-                                : 'bg-slate-900/50 border-transparent opacity-20'
-                            }`}
-                        >
-                            {active && <Icon name="zap" className="w-6 h-6 text-indigo-400" />}
-                        </button>
-                    ))}
-                </div>
-            );
-        };
-
-        // --- ZAMANLAYICI BİLEŞENİ ---
-        const Timer = () => {
-            const [time, setTime] = useState(1500);
-            const [isActive, setIsActive] = useState(false);
-
-            useEffect(() => {
-                let interval = null;
-                if (isActive && time > 0) {
-                    interval = setInterval(() => setTime(t => t - 1), 1000);
-                } else {
-                    clearInterval(interval);
-                }
-                return () => clearInterval(interval);
-            }, [isActive, time]);
-
-            const formatTime = (s) => {
-                const mins = Math.floor(s / 60);
-                const secs = s % 60;
-                return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
-            };
-
-            return (
-                <div className="text-center p-10 glass rounded-[2rem] border-indigo-500/20 w-80">
-                    <div className="text-6xl font-extrabold text-white mb-6 tracking-tight">
-                        {formatTime(time)}
-                    </div>
-                    <button 
-                        onClick={() => setIsActive(!isActive)}
-                        className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-bold transition-all neon-glow"
-                    >
-                        {isActive ? 'Durdur' : 'Odaklanmaya Başla'}
-                    </button>
-                </div>
-            );
-        };
-
-        // --- ANA UYGULAMA ---
         function App() {
-            const [activeTab, setActiveTab] = useState('game');
+            const gridSize = 8;
+            const [grid, setGrid] = useState(Array(gridSize * gridSize).fill(0));
+            const [previews, setPreviews] = useState([]);
             const [focusProgress, setFocusProgress] = useState(0);
+            const [activeTab, setActiveTab] = useState('game');
+
+            // Başlangıçta 3 şekil oluştur
+            useEffect(() => {
+                generateNewShapes();
+            }, []);
+
+            const generateNewShapes = () => {
+                const newShapes = [
+                    SHAPES[Math.floor(Math.random() * SHAPES.length)],
+                    SHAPES[Math.floor(Math.random() * SHAPES.length)],
+                    SHAPES[Math.floor(Math.random() * SHAPES.length)]
+                ];
+                setPreviews(newShapes);
+            };
+
+            const placeShape = (shapeIndex, gridIndex) => {
+                const shape = previews[shapeIndex];
+                const newGrid = [...grid];
+                const row = Math.floor(gridIndex / gridSize);
+                const col = gridIndex % gridSize;
+
+                // Yerleştirme kontrolü
+                for (let r = 0; r < shape.layout.length; r++) {
+                    for (let c = 0; c < shape.layout[r].length; c++) {
+                        if (shape.layout[r][c]) {
+                            const targetR = row + r;
+                            const targetC = col + c;
+                            const targetIdx = targetR * gridSize + targetC;
+
+                            if (targetR >= gridSize || targetC >= gridSize || grid[targetIdx]) return;
+                            newGrid[targetIdx] = 1;
+                        }
+                    }
+                }
+
+                // Satır/Sütun Patlatma
+                let linesCleared = 0;
+                let finalGrid = [...newGrid];
+
+                // Satırlar
+                for (let r = 0; r < gridSize; r++) {
+                    if (newGrid.slice(r * gridSize, (r + 1) * gridSize).every(cell => cell === 1)) {
+                        for (let i = 0; i < gridSize; i++) finalGrid[r * gridSize + i] = 0;
+                        linesCleared++;
+                    }
+                }
+                // Sütunlar
+                for (let c = 0; c < gridSize; c++) {
+                    let full = true;
+                    for (let r = 0; r < gridSize; r++) if (newGrid[r * gridSize + c] === 0) full = false;
+                    if (full) {
+                        for (let r = 0; r < gridSize; r++) finalGrid[r * gridSize + c] = 0;
+                        linesCleared++;
+                    }
+                }
+
+                setGrid(finalGrid);
+                setFocusProgress(prev => Math.min(prev + (linesCleared * 15) + 2, 100));
+                
+                const nextPreviews = [...previews];
+                nextPreviews.splice(shapeIndex, 1);
+                if (nextPreviews.length === 0) generateNewShapes();
+                else setPreviews(nextPreviews);
+            };
 
             return (
-                <div className="min-h-screen flex flex-col relative overflow-hidden px-4">
-                    {/* Arka Plan Efektleri */}
-                    <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] rounded-full bg-indigo-600/10 blur-[120px] pointer-events-none" />
-                    <div className="absolute bottom-[-20%] right-[-10%] w-[700px] h-[700px] rounded-full bg-purple-600/10 blur-[140px] pointer-events-none" />
-
+                <div className="min-h-screen flex flex-col items-center p-4 select-none">
                     {/* Header */}
-                    <header className="z-10 py-6 flex items-center justify-between max-w-4xl mx-auto w-full">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 glass rounded-xl flex items-center justify-center border-indigo-500/30">
-                                <Icon name="sparkles" className="w-6 h-6 text-indigo-400" />
-                            </div>
-                            <span className="text-xl font-extrabold tracking-tight bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
-                                FOCUS BLAST
-                            </span>
-                        </div>
-                        <button className="p-2 glass rounded-lg hover:bg-slate-800/40 transition-all">
-                            <Icon name="settings" className="w-5 h-5 text-slate-400" />
-                        </button>
-                    </header>
+                    <div className="w-full max-w-md flex justify-between items-center mb-8">
+                        <h1 className="text-2xl font-black italic tracking-tighter bg-gradient-to-r from-indigo-400 to-purple-500 bg-clip-text text-transparent">FOCUS BLAST</h1>
+                        <div className="px-4 py-1 glass rounded-full text-xs font-bold text-indigo-400">%{focusProgress} ODAK</div>
+                    </div>
 
                     {/* Progress Bar */}
-                    <div className="z-10 w-full max-w-md mx-auto mt-4">
-                        <div className="flex justify-between items-center mb-3">
-                            <span className="text-[10px] font-bold text-slate-500 tracking-widest uppercase flex items-center gap-2">
-                                <Icon name="activity" className="w-3 h-3" /> Zihin Durumu
-                            </span>
-                            <span className="text-indigo-400 font-bold text-sm">%{focusProgress}</span>
-                        </div>
-                        <div className="w-full h-2.5 bg-slate-900/80 rounded-full border border-slate-800 p-[2px]">
-                            <div 
-                                className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-full transition-all duration-700"
-                                style={{ width: `${focusProgress}%` }}
-                            />
-                        </div>
-                        
-                        {focusProgress >= 100 && (
-                            <div className="mt-4 glass border-indigo-500/30 p-3 rounded-xl animate-pulse text-center">
-                                <p className="text-sm font-medium text-indigo-200">Tam Odaklanma Sağlandı! 🚀</p>
-                            </div>
-                        )}
+                    <div className="w-full max-w-md h-2 bg-slate-900 rounded-full mb-8 overflow-hidden border border-slate-800">
+                        <div className="h-full bg-indigo-500 transition-all duration-500" style={{ width: `${focusProgress}%` }} />
                     </div>
 
-                    {/* Navigation */}
-                    <nav className="z-10 flex justify-center mt-10">
-                        <div className="flex p-1.5 glass rounded-2xl border-slate-800/50">
-                            <button 
-                                onClick={() => setActiveTab('game')}
-                                className={`flex items-center gap-2 py-2.5 px-8 rounded-xl font-bold text-sm transition-all ${activeTab === 'game' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
-                            >
-                                <Icon name="gamepad-2" className="w-4 h-4" /> Oyun
-                            </button>
-                            <button 
-                                onClick={() => setActiveTab('timer')}
-                                className={`flex items-center gap-2 py-2.5 px-8 rounded-xl font-bold text-sm transition-all ${activeTab === 'timer' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
-                            >
-                                <Icon name="timer" className="w-4 h-4" /> Sayaç
-                            </button>
-                        </div>
-                    </nav>
+                    {/* Main Board */}
+                    <div className="glass p-2 rounded-xl grid grid-cols-8 gap-1 shadow-2xl">
+                        {grid.map((cell, i) => (
+                            <div 
+                                key={i} 
+                                onClick={() => previews.length > 0 && placeShape(0, i)} // Simülasyon için ilk şekli yerleştirir
+                                className={`cell ${cell ? 'cell-filled' : 'cell-empty'} hover:bg-white/5`}
+                            />
+                        ))}
+                    </div>
 
-                    {/* Main */}
-                    <main className="z-10 flex-grow flex items-center justify-center py-12">
-                        {activeTab === 'game' ? <Game setFocusProgress={setFocusProgress} /> : <Timer />}
-                    </main>
+                    {/* Shape Previews */}
+                    <div className="mt-12 flex gap-8 items-center justify-center h-32 w-full max-w-md glass rounded-3xl">
+                        {previews.map((shape, idx) => (
+                            <div 
+                                key={idx} 
+                                className="shape-preview" 
+                                style={{ gridTemplateColumns: `repeat(${shape.layout[0].length}, 1fr)` }}
+                                onClick={() => {/* Sürükle bırak mantığı için temel */}}
+                            >
+                                {shape.layout.map((row, rIdx) => 
+                                    row.map((cell, cIdx) => (
+                                        <div key={`${rIdx}-${cIdx}`} className={`w-6 h-6 rounded-sm ${cell ? shape.color : 'opacity-0'}`} />
+                                    ))
+                                )}
+                            </div>
+                        ))}
+                    </div>
 
-                    {/* Footer */}
-                    <footer className="z-10 text-center py-8">
-                        <p className="text-[10px] text-slate-600 tracking-[0.3em] uppercase">
-                            Designed by Onur Karataş • Find Your Flow
-                        </p>
-                    </footer>
+                    <p className="mt-6 text-slate-500 text-[10px] uppercase tracking-widest font-bold">Bir şekle tıkla ve yerleştirmek istediğin hücreye tıkla</p>
                 </div>
             );
         }
