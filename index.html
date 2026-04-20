@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="description" content="Focus Blast - Blokları patlatarak odaklanmaya hazırlan! Block Blast mekaniklerini odaklanma felsefesiyle birleştiren etkileşimli web oyunu." />
+    <meta name="theme-color" content="#06b6d4" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Focus Blast" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text x='50' y='75' font-size='80' text-anchor='middle' fill='%2306b6d4' font-family='Arial'>🎮</text></svg>" />
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect fill='%230f172a' width='180' height='180' rx='40'/><text x='90' y='130' font-size='100' text-anchor='middle' fill='%2306b6d4' font-family='Arial' font-weight='bold'>🎮</text></svg>" />
+    <title>Focus Blast - Odaklanma Oyunu</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js').then(registration => {
+          console.log('Service Worker kayıtlandı:', registration);
+        }).catch(error => {
+          console.log('Service Worker kaydı başarısız:', error);
+        });
+      }
+    </script>
+  </body>
+</html>
