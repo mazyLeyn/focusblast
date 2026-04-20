@@ -3,15 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Focus Blast | Odaklanma Uygulaması</title>
+    <title>Focus Blast | Game Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        body { background-color: #0a0c14; margin: 0; overflow-x: hidden; }
-        .blur-effect { pointer-events: none; z-index: 0; }
+        @keyframes pop {
+            0% { transform: scale(1); }
+            50% { transform: scale(0.9); }
+            100% { transform: scale(1); }
+        }
+        .block-pop { animation: pop 0.2s ease-out; }
+        body { background-color: #0a0c14; overflow-x: hidden; font-family: sans-serif; }
     </style>
 </head>
 <body>
@@ -20,34 +25,58 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        // İkon Bileşenleri (Lucide kütüphanesinden manuel eşleme)
         const Icon = ({ name, className }) => {
-            useEffect(() => {
-                lucide.createIcons();
-            }, [name]);
+            useEffect(() => { lucide.createIcons(); }, [name]);
             return <i data-lucide={name} className={className}></i>;
         };
 
-        // Alt Bileşenler (Placeholder olarak eklendi, projenin geri kalanını buraya entegre edebilirsin)
-        const Game = ({ setFocusProgress, focusProgress }) => (
-            <div className="text-center p-10 border border-slate-800 rounded-2xl bg-slate-900/50 backdrop-blur-xl">
-                <Icon name="sparkles" className="w-12 h-12 mx-auto mb-4 text-indigo-400" />
-                <h2 className="text-2xl font-bold mb-2">Isınma Modu</h2>
-                <p className="text-slate-400 mb-6">Blokları patlatarak odaklanma barını doldur!</p>
-                <button 
-                    onClick={() => setFocusProgress(prev => Math.min(prev + 10, 100))}
-                    className="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2 rounded-lg transition-all"
-                >
-                    Test: Odak Artır (+10)
-                </button>
-            </div>
-        );
+        // OYUN BİLEŞENİ
+        const Game = ({ setFocusProgress, focusProgress }) => {
+            const [blocks, setBlocks] = useState(Array(16).fill(true));
+
+            const handleClick = (index) => {
+                if (blocks[index]) {
+                    const newBlocks = [...blocks];
+                    newBlocks[index] = false;
+                    setBlocks(newBlocks);
+                    setFocusProgress(prev => Math.min(prev + 5, 100));
+                    
+                    // 2 saniye sonra bloğu geri getir (sonsuz döngü)
+                    setTimeout(() => {
+                        setBlocks(prev => {
+                            const updated = [...prev];
+                            updated[index] = true;
+                            return updated;
+                        });
+                    }, 2000);
+                }
+            };
+
+            return (
+                <div className="grid grid-cols-4 gap-4 p-6 bg-slate-900/40 backdrop-blur-xl border border-slate-800/60 rounded-3xl shadow-2xl">
+                    {blocks.map((active, i) => (
+                        <div
+                            key={i}
+                            onClick={() => handleClick(i)}
+                            className={`w-16 h-16 sm:w-20 sm:h-20 rounded-2xl cursor-pointer transition-all duration-300 flex items-center justify-center
+                                ${active 
+                                    ? 'bg-gradient-to-br from-indigo-500/40 to-purple-600/40 border border-indigo-400/30 shadow-[0_0_15px_rgba(99,102,241,0.2)] hover:scale-105 active:scale-95' 
+                                    : 'bg-slate-800/20 border border-slate-700/20 opacity-20'}`}
+                        >
+                            {active && <Icon name="zap" className="w-6 h-6 text-indigo-300" />}
+                        </div>
+                    ))}
+                </div>
+            );
+        };
 
         const Timer = () => (
-            <div className="text-center p-10 border border-slate-800 rounded-2xl bg-slate-900/50 backdrop-blur-xl">
-                <Icon name="clock" className="w-12 h-12 mx-auto mb-4 text-purple-400" />
-                <h2 className="text-2xl font-bold mb-2">Çalışma Modu</h2>
-                <p className="text-slate-400">Pomodoro zamanlayıcısı burada aktif olacak.</p>
+            <div className="text-center p-12 bg-slate-900/40 backdrop-blur-xl border border-slate-800/60 rounded-3xl">
+                <div className="text-6xl font-mono font-bold text-indigo-400 mb-4 tracking-tighter">25:00</div>
+                <p className="text-slate-400 font-medium">Odaklanma Zamanı!</p>
+                <button className="mt-6 px-8 py-3 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-bold transition-all shadow-lg shadow-indigo-600/20">
+                    Başlat
+                </button>
             </div>
         );
 
@@ -56,69 +85,58 @@
             const [focusProgress, setFocusProgress] = useState(0);
 
             return (
-                <div className="min-h-screen text-slate-100 flex flex-col relative overflow-hidden font-sans">
-                    {/* Arka Plan Efektleri */}
-                    <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-indigo-500/10 blur-[120px] blur-effect" />
-                    <div className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] rounded-full bg-purple-500/10 blur-[140px] blur-effect" />
+                <div className="min-h-screen text-slate-100 flex flex-col relative overflow-hidden">
+                    {/* Arka Plan Neonları */}
+                    <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-indigo-500/10 blur-[120px] pointer-events-none" />
+                    <div className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] rounded-full bg-purple-500/10 blur-[140px] pointer-events-none" />
 
-                    {/* Header */}
                     <header className="z-10 bg-slate-900/40 backdrop-blur-md border-b border-slate-800/60 sticky top-0">
-                        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
-                            <button className="p-2 hover:bg-slate-800/60 rounded-xl transition-all border border-transparent hover:border-slate-700/50">
-                                <Icon name="menu" className="w-6 h-6 text-slate-200" />
-                            </button>
+                        <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
+                            <Icon name="menu" className="w-6 h-6 text-slate-400 cursor-pointer" />
                             <div className="flex items-center gap-2">
-                                <div className="bg-indigo-600/20 p-2 rounded-xl border border-indigo-500/30">
-                                    <Icon name="sparkles" className="w-5 h-5 text-indigo-400" />
-                                </div>
-                                <h1 className="text-xl font-extrabold tracking-wide bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
-                                    Focus Blast
-                                </h1>
+                                <Icon name="sparkles" className="w-6 h-6 text-indigo-400" />
+                                <h1 className="text-xl font-black tracking-tight bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">FOCUS BLAST</h1>
                             </div>
-                            <div className="w-10" />
+                            <div className="w-6" />
                         </div>
                     </header>
 
-                    {/* Progress Bar */}
-                    <div className="z-10 w-full max-w-xl mx-auto px-4 mt-8">
-                        <div className="flex justify-between items-center mb-1 text-xs font-semibold text-slate-400 tracking-wider">
-                            <span className="flex items-center gap-1">
-                                <Icon name="zap" className="w-3.5 h-3.5 text-yellow-500" /> ODAKLANMA BARI
-                            </span>
-                            <span className="text-indigo-400">{focusProgress}%</span>
+                    <div className="z-10 w-full max-w-md mx-auto px-6 mt-8">
+                        <div className="flex justify-between items-center mb-2 text-[10px] font-bold text-slate-500 tracking-[0.2em]">
+                            <span>ODAKLANMA SEVİYESİ</span>
+                            <span className="text-indigo-400">%{focusProgress}</span>
                         </div>
-                        <div className="w-full h-3 bg-slate-800/60 border border-slate-700/40 rounded-full p-[2px] overflow-hidden">
-                            <div
-                                className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-full transition-all duration-500 shadow-[0_0_8px_rgba(129,140,248,0.5)]"
+                        <div className="w-full h-2.5 bg-slate-900 border border-slate-800 rounded-full overflow-hidden">
+                            <div 
+                                className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 transition-all duration-500"
                                 style={{ width: `${focusProgress}%` }}
                             />
                         </div>
                     </div>
 
-                    {/* Navigasyon */}
-                    <div className="z-10 flex justify-center mt-6">
-                        <div className="flex p-1 bg-slate-900/60 border border-slate-800/40 rounded-xl">
-                            <button
+                    <nav className="z-10 flex justify-center mt-8">
+                        <div className="flex p-1.5 bg-slate-900/80 border border-slate-800 rounded-2xl">
+                            <button 
                                 onClick={() => setActiveTab('game')}
-                                className={`flex items-center gap-2 py-2.5 px-6 rounded-lg font-bold text-sm transition-all ${activeTab === 'game' ? 'bg-indigo-600 text-white' : 'text-slate-400'}`}
+                                className={`flex items-center gap-2 py-2 px-6 rounded-xl font-bold text-sm transition-all ${activeTab === 'game' ? 'bg-indigo-600 text-white' : 'text-slate-500 hover:text-slate-300'}`}
                             >
                                 <Icon name="compass" className="w-4 h-4" /> Isınma
                             </button>
-                            <button
+                            <button 
                                 onClick={() => setActiveTab('timer')}
-                                className={`flex items-center gap-2 py-2.5 px-6 rounded-lg font-bold text-sm transition-all ${activeTab === 'timer' ? 'bg-indigo-600 text-white' : 'text-slate-400'}`}
+                                className={`flex items-center gap-2 py-2 px-6 rounded-xl font-bold text-sm transition-all ${activeTab === 'timer' ? 'bg-indigo-600 text-white' : 'text-slate-500 hover:text-slate-300'}`}
                             >
                                 <Icon name="clock" className="w-4 h-4" /> Çalışma
                             </button>
                         </div>
-                    </div>
+                    </nav>
 
-                    <main className="z-10 flex-grow flex items-center justify-center py-6">
+                    <main className="z-10 flex-grow flex items-center justify-center py-10">
                         {activeTab === 'game' ? <Game setFocusProgress={setFocusProgress} focusProgress={focusProgress} /> : <Timer />}
                     </main>
 
-                    <footer className="z-10 text-center py-4 text-xs text-slate-500 border-t border-slate-900/80 bg-slate-950/20">
-                        Focus Blast • Zihnini Tazelemek İçin Blok Patlat
+                    <footer className="z-10 text-center py-6 text-[10px] text-slate-600 tracking-widest uppercase">
+                        Onur Karataş &bull; Focus Blast v1.0
                     </footer>
                 </div>
             );
