@@ -1,30 +1,131 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="tr">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="description" content="Focus Blast - Blokları patlatarak odaklanmaya hazırlan! Block Blast mekaniklerini odaklanma felsefesiyle birleştiren etkileşimli web oyunu." />
-    <meta name="theme-color" content="#06b6d4" />
-    <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="Focus Blast" />
-    <link rel="manifest" href="/manifest.json" />
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text x='50' y='75' font-size='80' text-anchor='middle' fill='%2306b6d4' font-family='Arial'>🎮</text></svg>" />
-    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect fill='%230f172a' width='180' height='180' rx='40'/><text x='90' y='130' font-size='100' text-anchor='middle' fill='%2306b6d4' font-family='Arial' font-weight='bold'>🎮</text></svg>" />
-    <title>Focus Blast - Odaklanma Oyunu</title>
-  </head>
-  <body>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Focus Blast | Odaklanma Uygulaması</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { background-color: #0a0c14; margin: 0; overflow-x: hidden; }
+        .blur-effect { pointer-events: none; z-index: 0; }
+    </style>
+</head>
+<body>
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-    <script>
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/sw.js').then(registration => {
-          console.log('Service Worker kayıtlandı:', registration);
-        }).catch(error => {
-          console.log('Service Worker kaydı başarısız:', error);
-        });
-      }
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // İkon Bileşenleri (Lucide kütüphanesinden manuel eşleme)
+        const Icon = ({ name, className }) => {
+            useEffect(() => {
+                lucide.createIcons();
+            }, [name]);
+            return <i data-lucide={name} className={className}></i>;
+        };
+
+        // Alt Bileşenler (Placeholder olarak eklendi, projenin geri kalanını buraya entegre edebilirsin)
+        const Game = ({ setFocusProgress, focusProgress }) => (
+            <div className="text-center p-10 border border-slate-800 rounded-2xl bg-slate-900/50 backdrop-blur-xl">
+                <Icon name="sparkles" className="w-12 h-12 mx-auto mb-4 text-indigo-400" />
+                <h2 className="text-2xl font-bold mb-2">Isınma Modu</h2>
+                <p className="text-slate-400 mb-6">Blokları patlatarak odaklanma barını doldur!</p>
+                <button 
+                    onClick={() => setFocusProgress(prev => Math.min(prev + 10, 100))}
+                    className="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2 rounded-lg transition-all"
+                >
+                    Test: Odak Artır (+10)
+                </button>
+            </div>
+        );
+
+        const Timer = () => (
+            <div className="text-center p-10 border border-slate-800 rounded-2xl bg-slate-900/50 backdrop-blur-xl">
+                <Icon name="clock" className="w-12 h-12 mx-auto mb-4 text-purple-400" />
+                <h2 className="text-2xl font-bold mb-2">Çalışma Modu</h2>
+                <p className="text-slate-400">Pomodoro zamanlayıcısı burada aktif olacak.</p>
+            </div>
+        );
+
+        function App() {
+            const [activeTab, setActiveTab] = useState('game');
+            const [focusProgress, setFocusProgress] = useState(0);
+
+            return (
+                <div className="min-h-screen text-slate-100 flex flex-col relative overflow-hidden font-sans">
+                    {/* Arka Plan Efektleri */}
+                    <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-indigo-500/10 blur-[120px] blur-effect" />
+                    <div className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] rounded-full bg-purple-500/10 blur-[140px] blur-effect" />
+
+                    {/* Header */}
+                    <header className="z-10 bg-slate-900/40 backdrop-blur-md border-b border-slate-800/60 sticky top-0">
+                        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+                            <button className="p-2 hover:bg-slate-800/60 rounded-xl transition-all border border-transparent hover:border-slate-700/50">
+                                <Icon name="menu" className="w-6 h-6 text-slate-200" />
+                            </button>
+                            <div className="flex items-center gap-2">
+                                <div className="bg-indigo-600/20 p-2 rounded-xl border border-indigo-500/30">
+                                    <Icon name="sparkles" className="w-5 h-5 text-indigo-400" />
+                                </div>
+                                <h1 className="text-xl font-extrabold tracking-wide bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+                                    Focus Blast
+                                </h1>
+                            </div>
+                            <div className="w-10" />
+                        </div>
+                    </header>
+
+                    {/* Progress Bar */}
+                    <div className="z-10 w-full max-w-xl mx-auto px-4 mt-8">
+                        <div className="flex justify-between items-center mb-1 text-xs font-semibold text-slate-400 tracking-wider">
+                            <span className="flex items-center gap-1">
+                                <Icon name="zap" className="w-3.5 h-3.5 text-yellow-500" /> ODAKLANMA BARI
+                            </span>
+                            <span className="text-indigo-400">{focusProgress}%</span>
+                        </div>
+                        <div className="w-full h-3 bg-slate-800/60 border border-slate-700/40 rounded-full p-[2px] overflow-hidden">
+                            <div
+                                className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-full transition-all duration-500 shadow-[0_0_8px_rgba(129,140,248,0.5)]"
+                                style={{ width: `${focusProgress}%` }}
+                            />
+                        </div>
+                    </div>
+
+                    {/* Navigasyon */}
+                    <div className="z-10 flex justify-center mt-6">
+                        <div className="flex p-1 bg-slate-900/60 border border-slate-800/40 rounded-xl">
+                            <button
+                                onClick={() => setActiveTab('game')}
+                                className={`flex items-center gap-2 py-2.5 px-6 rounded-lg font-bold text-sm transition-all ${activeTab === 'game' ? 'bg-indigo-600 text-white' : 'text-slate-400'}`}
+                            >
+                                <Icon name="compass" className="w-4 h-4" /> Isınma
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('timer')}
+                                className={`flex items-center gap-2 py-2.5 px-6 rounded-lg font-bold text-sm transition-all ${activeTab === 'timer' ? 'bg-indigo-600 text-white' : 'text-slate-400'}`}
+                            >
+                                <Icon name="clock" className="w-4 h-4" /> Çalışma
+                            </button>
+                        </div>
+                    </div>
+
+                    <main className="z-10 flex-grow flex items-center justify-center py-6">
+                        {activeTab === 'game' ? <Game setFocusProgress={setFocusProgress} focusProgress={focusProgress} /> : <Timer />}
+                    </main>
+
+                    <footer className="z-10 text-center py-4 text-xs text-slate-500 border-t border-slate-900/80 bg-slate-950/20">
+                        Focus Blast • Zihnini Tazelemek İçin Blok Patlat
+                    </footer>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
     </script>
-  </body>
+</body>
 </html>
